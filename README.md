@@ -1,2 +1,3 @@
 # pywitch_client
-PyWitch client to create an HTTP server that return the lastests events
+Client to start PyWitch and create an HTTP endpoints that return the lastests events
+

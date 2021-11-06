@@ -127,3 +127,10 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+pywitch_client_token.dat
+src/pywitch_client_token.dat
+src/pywitch_client/pywitch_client_token.dat
+pywitch_client_config.ini
+src/pywitch_client_config.ini
+src/pywitch_client/pywitch_client_config.ini
