@@ -1,0 +1,7 @@
+Flask==2.0.2
+PyQt5==5.15.6
+PyQt5-Qt5==5.15.2
+PyQt5-sip==12.9.0
+pywitch==1.0.2
+requests==2.26.0
+websocket-client==1.2.1
