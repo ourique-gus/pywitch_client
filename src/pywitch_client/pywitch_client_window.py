@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import (
     QLineEdit,
     QFormLayout,
     QMessageBox,
+    QSizePolicy,
 )
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import QPoint, Qt
@@ -23,6 +24,8 @@ import webbrowser
 from os.path import isfile, join
 from configparser import ConfigParser
 from pywitch_client_manager import PyWitchClientManager
+from _version import version
+
 
 def resource_path(relative_path):
     try:
@@ -34,8 +37,9 @@ def resource_path(relative_path):
 
 
 class PyWitchClientWindow(QMainWindow):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, app, *args, **kwargs):
         super(PyWitchClientWindow, self).__init__(*args, **kwargs)
+        self.app = app
         self.setWindowTitle("PyWitch Client")
         self.setFixedWidth(225)
 
@@ -57,6 +61,7 @@ class PyWitchClientWindow(QMainWindow):
         self.setup_button()
         self.setup_writebox()
         self.setup_toggle_box()
+        self.setup_about_button()
 
         self.setCentralWidget(self.main_widget)
 
@@ -109,6 +114,7 @@ class PyWitchClientWindow(QMainWindow):
             time.sleep(interval)
             num += 1
             self.token = self.manager.get_token(endpoint)
+        print(self.token)
         self.config['authentication']['token'] = self.token
         self.save_config()
         self.button_widget.setText('Starting PyWitch Server...')
@@ -139,6 +145,26 @@ class PyWitchClientWindow(QMainWindow):
 
     def close_event(self):
         self.reset_widgets()
+
+    ##########################################################################
+
+    def setup_about_button(self):
+        self.button_about_widget = QPushButton()
+        self.button_about_widget.setText('About PyWitch')
+        self.button_about_widget.clicked.connect(self.click_about_button)
+        self.layout.addWidget(self.button_about_widget)
+
+    def click_about_button(self):
+        self.button_about_widget.setEnabled(False)
+        self.about_popup = PyWitchClientPopupAbout(self.close_about_event)
+        self.about_popup.button.clicked.connect(self.close_about_popup)
+        self.about_popup.show()
+
+    def close_about_popup(self):
+        self.about_popup.close()
+
+    def close_about_event(self):
+        self.button_about_widget.setEnabled(True)
 
     ##########################################################################
 
@@ -195,7 +221,7 @@ class PyWitchClientWindow(QMainWindow):
         self.layout.addWidget(self.opt_widget)
 
         img_path = resource_path(join('logo', 'pywitch_logo.png'))
-        print( img_path )
+        print(img_path)
 
         pixmap = QPixmap(img_path)
         self.image = QLabel(self.opt_widget)
@@ -240,6 +266,10 @@ class PyWitchClientWindow(QMainWindow):
             with open(self.config_file, 'w') as open_cf:
                 self.config.write(open_cf)
 
+    ##########################################################################
+
+    def closeEvent(self, event):
+        self.app.closeAllWindows()
 
     ##########################################################################
 
@@ -257,6 +287,57 @@ class PyWitchClientPopupError(QMainWindow):
         self.widget.setInformativeText(msg)
         self.button = self.widget.addButton(QMessageBox.Ok)
         self.setCentralWidget(self.widget)
+
+    def closeEvent(self, event):
+        self.close_event()
+
+
+class PyWitchClientPopupAbout(QMainWindow):
+    def __init__(self, close_event):
+        super().__init__()
+
+        self.setWindowTitle('About')
+
+        self.main_widget = QWidget()
+        self.layout = QVBoxLayout()
+        self.main_widget.setLayout(self.layout)
+
+        self.close_event = close_event
+
+        self.body = QLabel(
+            "PyWitch Client is a GUI interface to PyWitch library combined "
+            "with a Web Application Framework (Flask).\n\n"
+            "Its main purpose is to provide HTTP endpoint to get the lastest "
+            "Twitch events captured with PyWitch."
+        )
+        self.body.setWordWrap(True)
+        
+        self.author = QLabel(
+            "\nAuthor: Gustavo Ourique (gleenus)\n\n" f"Version: {version}"
+        )
+        
+        self.source = QLabel(
+            '<a href="https://github.com/ouriquegustavo/pywitch">'
+            'PyWitch Source (github)</a>'
+        )
+        self.source.setOpenExternalLinks(True)
+        
+        self.source_client = QLabel(
+            '<a href="https://github.com/ouriquegustavo/pywitch_client">'
+            'PyWitch Client Source (github)</a>'
+        )
+        self.source_client.setOpenExternalLinks(True)
+
+        self.button = QPushButton()
+        self.button.setText('Close')
+
+        self.layout.addWidget(self.body)
+        self.layout.addWidget(self.author)
+        self.layout.addWidget(self.source)
+        self.layout.addWidget(self.source_client)
+        self.layout.addWidget(self.button)
+
+        self.setCentralWidget(self.main_widget)
 
     def closeEvent(self, event):
         self.close_event()

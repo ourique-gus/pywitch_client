@@ -1,13 +1,6 @@
-from PyQt5.QtWidgets import QApplication, QStyleFactory
-from pywitch_client_window import PyWitchClientWindow
-
-import threading
+from pywitch_client_app import PyWitchClientApp
 import sys
-import time
 
 if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    app.setStyle(QStyleFactory.create('Fusion'))
-    window = PyWitchClientWindow()
-    window.show()
-    app.exec_()
+    pywitch_client_app = PyWitchClientApp()
+    sys.exit(pywitch_client_app.app.exec_())
