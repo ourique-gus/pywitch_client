@@ -23,8 +23,8 @@ import string
 import random
 import threading
 import webbrowser
-from os.path import isfile, join
-from configparser import ConfigParser
+from os.path import join
+from pywitch_client_config import PyWitchClientConfig
 from pywitch_client_manager import PyWitchClientManager
 from _version import version
 
@@ -36,7 +36,8 @@ def resource_path(relative_path):
         base_path = os.path.abspath(".")
 
     return os.path.join(base_path, relative_path)
-    
+
+
 class PyWitchClientApp:
     def __init__(self):
         self.app = QApplication([])
@@ -50,11 +51,10 @@ class PyWitchClientWindow(QMainWindow):
     def __init__(self, app, *args, **kwargs):
         super(PyWitchClientWindow, self).__init__(*args, **kwargs)
         self.app = app
-        self.github_url = 'https://github.com/ouriquegustavo/pywitch_client'
         self.setWindowTitle("PyWitch Client")
         self.setFixedWidth(225)
 
-        self.read_config()
+        self.config = PyWitchClientConfig()
         self.token = self.config['authentication']['token']
         self.channel = self.config['authentication']['channel']
         self.host = self.config['connection']['host']
@@ -73,11 +73,10 @@ class PyWitchClientWindow(QMainWindow):
         self.setup_writebox()
         self.setup_toggle_box()
         self.setup_about_button()
-        
+
         self.check_for_updates()
         if str(version) != str(self.git_version):
             self.setup_update_button()
-        
 
         self.setCentralWidget(self.main_widget)
 
@@ -131,7 +130,7 @@ class PyWitchClientWindow(QMainWindow):
             num += 1
             self.token = self.manager.get_token(endpoint)
         self.config['authentication']['token'] = self.token
-        self.save_config()
+        self.config.save_config()
         self.button_widget.setText('Starting PyWitch Server...')
         self.manager.validate(self.token)
         if not self.manager.validation:
@@ -180,9 +179,9 @@ class PyWitchClientWindow(QMainWindow):
 
     def close_about_event(self):
         self.button_about_widget.setEnabled(True)
-        
+
     ##################
-    
+
     def setup_update_button(self):
         self.button_update_widget = QPushButton()
         self.button_update_widget.setText('Update available! (click here)')
@@ -190,7 +189,7 @@ class PyWitchClientWindow(QMainWindow):
         self.layout.addWidget(self.button_update_widget)
 
     def click_update_button(self):
-        webbrowser.open(self.github_url)
+        webbrowser.open('https://github.com/ouriquegustavo/pywitch_client')
 
     ##########################################################################
 
@@ -258,38 +257,13 @@ class PyWitchClientWindow(QMainWindow):
     def toggle_feature(self, kind):
         state = self.opt_check[kind].isChecked()
         self.config['features'][kind] = str(state)
-        self.save_config()
+        self.config.save_config()
 
     ##########################################################################
 
     def closeEvent(self, event):
-        self.save_config()
+        self.config.save_config()
         event.accept()
-
-    ##########################################################################
-
-    def save_config(self):
-        if not hasattr(self, 'config'):
-            self.read_config()
-        with open(self.config_file, 'w') as open_cf:
-            self.config.write(open_cf)
-
-    def read_config(self, config_file='pywitch_client_config.ini'):
-        self.config_file = config_file
-        self.config = ConfigParser()
-        if isfile(self.config_file):
-            self.config.read(config_file)
-        else:
-            self.config['authentication'] = {'token': '', 'channel': 'gleenus'}
-            self.config['connection'] = {'host': '127.0.0.1', 'port': 13486}
-            self.config['features'] = {
-                'tmi': True,
-                'heat': True,
-                'redemptions': True,
-                'stream_info': True,
-            }
-            with open(self.config_file, 'w') as open_cf:
-                self.config.write(open_cf)
 
     ##########################################################################
 
@@ -297,10 +271,10 @@ class PyWitchClientWindow(QMainWindow):
         self.app.closeAllWindows()
 
     ##########################################################################
-    
+
     def check_for_updates(self):
         self.git_version = self.manager.get_version_in_repository()
-    
+
     ##########################################################################
 
 
@@ -341,19 +315,19 @@ class PyWitchClientPopupAbout(QMainWindow):
             "Twitch events captured with PyWitch."
         )
         self.body.setWordWrap(True)
-        
+
         self.author = QLabel(
             "\nAuthor: Gustavo Ourique (gleenus)\n\n" f"Version: {version}"
         )
-        
+
         self.source = QLabel(
             '<a href="https://github.com/ouriquegustavo/pywitch">'
             'PyWitch Source (github)</a>'
         )
         self.source.setOpenExternalLinks(True)
-        
+
         self.source_client = QLabel(
-            f'<a href="{self.github_url}">'
+            f'<a href="https://github.com/ouriquegustavo/pywitch_client">'
             'PyWitch Client Source (github)</a>'
         )
         self.source_client.setOpenExternalLinks(True)
