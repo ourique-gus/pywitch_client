@@ -1,5 +1,6 @@
 from PyQt5.QtWidgets import (
     QLabel,
+    QApplication,
     QVBoxLayout,
     QHBoxLayout,
     QMainWindow,
@@ -11,6 +12,7 @@ from PyQt5.QtWidgets import (
     QFormLayout,
     QMessageBox,
     QSizePolicy,
+    QStyleFactory,
 )
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import QPoint, Qt
@@ -34,12 +36,21 @@ def resource_path(relative_path):
         base_path = os.path.abspath(".")
 
     return os.path.join(base_path, relative_path)
+    
+class PyWitchClientApp:
+    def __init__(self):
+        self.app = QApplication([])
+        self.style = 'Fusion'
+        self.app.setStyle(self.style)
+        self.window = PyWitchClientWindow(self.app)
+        self.window.show()
 
 
 class PyWitchClientWindow(QMainWindow):
     def __init__(self, app, *args, **kwargs):
         super(PyWitchClientWindow, self).__init__(*args, **kwargs)
         self.app = app
+        self.github_url = 'https://github.com/ouriquegustavo/pywitch_client'
         self.setWindowTitle("PyWitch Client")
         self.setFixedWidth(225)
 
@@ -62,6 +73,11 @@ class PyWitchClientWindow(QMainWindow):
         self.setup_writebox()
         self.setup_toggle_box()
         self.setup_about_button()
+        
+        self.check_for_updates()
+        if str(version) != str(self.git_version):
+            self.setup_update_button()
+        
 
         self.setCentralWidget(self.main_widget)
 
@@ -114,7 +130,6 @@ class PyWitchClientWindow(QMainWindow):
             time.sleep(interval)
             num += 1
             self.token = self.manager.get_token(endpoint)
-        print(self.token)
         self.config['authentication']['token'] = self.token
         self.save_config()
         self.button_widget.setText('Starting PyWitch Server...')
@@ -165,6 +180,17 @@ class PyWitchClientWindow(QMainWindow):
 
     def close_about_event(self):
         self.button_about_widget.setEnabled(True)
+        
+    ##################
+    
+    def setup_update_button(self):
+        self.button_update_widget = QPushButton()
+        self.button_update_widget.setText('Update available! (click here)')
+        self.button_update_widget.clicked.connect(self.click_update_button)
+        self.layout.addWidget(self.button_update_widget)
+
+    def click_update_button(self):
+        webbrowser.open(self.github_url)
 
     ##########################################################################
 
@@ -221,7 +247,6 @@ class PyWitchClientWindow(QMainWindow):
         self.layout.addWidget(self.opt_widget)
 
         img_path = resource_path(join('logo', 'pywitch_logo.png'))
-        print(img_path)
 
         pixmap = QPixmap(img_path)
         self.image = QLabel(self.opt_widget)
@@ -271,6 +296,11 @@ class PyWitchClientWindow(QMainWindow):
     def closeEvent(self, event):
         self.app.closeAllWindows()
 
+    ##########################################################################
+    
+    def check_for_updates(self):
+        self.git_version = self.manager.get_version_in_repository()
+    
     ##########################################################################
 
 
@@ -323,7 +353,7 @@ class PyWitchClientPopupAbout(QMainWindow):
         self.source.setOpenExternalLinks(True)
         
         self.source_client = QLabel(
-            '<a href="https://github.com/ouriquegustavo/pywitch_client">'
+            f'<a href="{self.github_url}">'
             'PyWitch Client Source (github)</a>'
         )
         self.source_client.setOpenExternalLinks(True)

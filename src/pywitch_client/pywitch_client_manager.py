@@ -122,7 +122,9 @@ class PyWitchClientManager:
 
     def validate(self, token):
         try:
-            self.validation, self.helix_headers = validate_token(token)
+            self.validation, self.helix_headers = validate_token(
+                token, verbose=False
+            )
         except:
             self.validation = {}
         return self.validation
@@ -196,3 +198,12 @@ class PyWitchClientManager:
         for v in self.features.values():
             thread = threading.Thread(target=v.stop, args=(), daemon=True)
             thread.start()
+            
+    def get_version_in_repository(self):
+        version_file_url = (
+            'https://raw.githubusercontent.com/ouriquegustavo/'
+            'pywitch_client/main/src/pywitch_client/_version.py'
+        )
+        response = requests.get(version_file_url)
+        if response.status_code==200:
+            return response.text.split("'")[1]
