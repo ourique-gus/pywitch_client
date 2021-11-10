@@ -183,7 +183,7 @@ class PyWitchClientWindow(QMainWindow):
     def close_about_event(self):
         self.button_about_widget.setEnabled(True)
 
-    ##################
+    ##########################################################################
 
     def setup_update_button(self):
         self.button_update_widget = QPushButton()
@@ -271,6 +271,7 @@ class PyWitchClientWindow(QMainWindow):
     ##########################################################################
 
     def closeEvent(self, event):
+        self.config.save_config()
         self.app.closeAllWindows()
 
     ##########################################################################

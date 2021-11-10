@@ -48,6 +48,7 @@ class PyWitchClientNoGui:
             print(f'(PyWitch Client) Not able to authenticate!')
             return
         self.config['authentication']['token'] = self.token
+        self.config.save_config()
         
         self.channel_data = self.manager.verify_channel(self.channel)
         if not self.channel_data['login']:
