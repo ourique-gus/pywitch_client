@@ -2,10 +2,12 @@ import json
 import time
 import string
 import random
+import logging
 import requests
 import threading
 from flask import Flask, request
 from pywitch import (
+    run_forever,
     validate_token,
     get_user_info,
     PyWitchTMI,
@@ -32,7 +34,6 @@ events = {
 def tmi_callback(data):
     data.pop('event_raw')
     data['pywitch_id'] = random_string(64)
-    print(data)
     events['tmi'] = json.dumps(data, ensure_ascii=False)
 
 
@@ -55,6 +56,9 @@ def streaminfo_callback(data):
 
 
 app = Flask('app')
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)
+
 
 
 @app.route('/<kind>')
@@ -173,24 +177,31 @@ class PyWitchClientManager:
             raise Exception("Missing channel!")
         if not self.token:
             raise Exception("Missing token!")
+        print(f'(PyWitch Client) Started for channel {self.channel}')
+        print(f'(PyWitch Client) Valid Endpoints:')
         if 'tmi' in features:
             self.features['tmi'] = PyWitchTMI(
-                self.channel, self.token, tmi_callback
+                self.channel, self.token, tmi_callback, verbose=False
             )
         if 'heat' in features:
             self.features['heat'] = PyWitchHeat(
-                self.channel, self.token, heat_callback
+                self.channel, self.token, heat_callback, verbose=False
             )
         if 'redemptions' in features:
             self.features['redemptions'] = PyWitchRedemptions(
-                self.token, redemptions_callback
+                self.token, redemptions_callback, verbose=False
             )
         if 'streaminfo' in features:
             self.features['streaminfo'] = PyWitchStreamInfo(
-                self.channel, self.token, streaminfo_callback
+                self.channel, self.token, streaminfo_callback, verbose=False
             )
 
-        for v in self.features.values():
+        for k, v in self.features.items():
+            print(
+                f'(PyWitch Client) {k.capitalize()}: '
+                f'{self.host}:{self.port}/{k}'
+            )
+
             v.start()
 
     def stop_all(self):
@@ -210,3 +221,6 @@ class PyWitchClientManager:
                 return response.text.split("'")[1]
         except:
             return None
+            
+    def run_forever(self):
+        run_forever()

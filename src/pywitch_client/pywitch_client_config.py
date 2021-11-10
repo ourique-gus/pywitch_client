@@ -10,7 +10,6 @@ class PyWitchClientConfig(ConfigParser):
 
     def save_config(self):
         with open(self.config_file, 'w') as open_cf:
-            print('here', self.config_file)
             self.write(open_cf)
 
     def read_config(self):
@@ -21,9 +20,9 @@ class PyWitchClientConfig(ConfigParser):
             self['connection'] = {'host': '127.0.0.1', 'port': 13486}
             self['features'] = {
                 'tmi': True,
-                'heat': True,
+                'heat': False,
                 'redemptions': True,
-                'stream_info': True,
+                'streaminfo': True,
             }
             with open(self.config_file, 'w') as open_cf:
                 self.write(open_cf)

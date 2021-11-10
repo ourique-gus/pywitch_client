@@ -112,11 +112,11 @@ class PyWitchClientWindow(QMainWindow):
 
     def button_clicked_thread(self):
         if not self.manager.is_running:
-            validation = self.manager.validate(self.token)
-            if not self.token:
+            self.validation = self.manager.validate(self.token)
+            if not self.validation:
                 self.button_widget.setText('Waiting for authorization...')
                 webbrowser.open(self.auth_url)
-            thread = threading.Thread(target=self.watch_for_token, args=())
+            thread = threading.Thread(target=self.watch_for_token, args=(), daemon=True)
             thread.start()
         else:
             self.button_widget.setText('Stopping Pywitch Server...')
@@ -125,14 +125,17 @@ class PyWitchClientWindow(QMainWindow):
 
     def watch_for_token(self, endpoint='state', interval=3, max_tries=60):
         num = 0
-        while num < max_tries and not self.token:
+        while num < max_tries and not self.validation:
             time.sleep(interval)
             num += 1
             self.token = self.manager.get_token(endpoint)
+            self.validation = self.manager.validate(self.token)
+        if num >= max_tries:
+            self.popup_error('Not able to authenticate!')
+            return
         self.config['authentication']['token'] = self.token
         self.config.save_config()
         self.button_widget.setText('Starting PyWitch Server...')
-        self.manager.validate(self.token)
         if not self.manager.validation:
             self.popup_error('Invalid token!')
             return
@@ -224,7 +227,7 @@ class PyWitchClientWindow(QMainWindow):
             'tmi': QCheckBox("TMI"),
             'heat': QCheckBox("Heat"),
             'redemptions': QCheckBox("Redemptions"),
-            'stream_info': QCheckBox("Stream Information"),
+            'streaminfo': QCheckBox("Stream Information"),
         }
         for k, v in self.opt_check.items():
             v.setChecked(self.config.getboolean('features', k))
@@ -240,8 +243,8 @@ class PyWitchClientWindow(QMainWindow):
         self.opt_check['redemptions'].toggled.connect(
             lambda: self.toggle_feature('redemptions')
         )
-        self.opt_check['stream_info'].toggled.connect(
-            lambda: self.toggle_feature('stream_info')
+        self.opt_check['streaminfo'].toggled.connect(
+            lambda: self.toggle_feature('streaminfo')
         )
         self.layout.addWidget(self.opt_widget)
 

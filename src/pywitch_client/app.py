@@ -14,7 +14,9 @@ if __name__ == "__main__":
     (options, args) = parser.parse_args()
 
     if options.nogui:
-        pass
+        from pywitch_client_nogui import PyWitchClientNoGui
+        pywitch_client_app = PyWitchClientNoGui()
+        sys.exit(pywitch_client_app.start())
     else:
         from pywitch_client_window import PyWitchClientApp
 
