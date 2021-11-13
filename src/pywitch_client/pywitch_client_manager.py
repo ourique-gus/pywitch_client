@@ -34,25 +34,25 @@ events = {
 def tmi_callback(data):
     data.pop('event_raw')
     data['pywitch_id'] = random_string(64)
-    events['tmi'] = json.dumps(data, ensure_ascii=False)
+    events['tmi'] = data
 
 
 def heat_callback(data):
     data.pop('event_raw')
     data['pywitch_id'] = random_string(64)
-    events['heat'] = json.dumps(data, ensure_ascii=False)
+    events['heat'] = data
 
 
 def redemptions_callback(data):
     data.pop('event_raw')
     data['pywitch_id'] = random_string(64)
-    events['redemptions'] = json.dumps(data, ensure_ascii=False)
+    events['redemptions'] = data
 
 
 def streaminfo_callback(data):
     data.pop('event_raw')
     data['pywitch_id'] = random_string(64)
-    events['streaminfo'] = json.dumps(data, ensure_ascii=False)
+    events['streaminfo'] = data
 
 
 app = Flask('app')
