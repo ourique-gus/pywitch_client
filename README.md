@@ -46,6 +46,11 @@ downloaded in the releases section.
 
 The executable binaries where made with `pyinstaller`.
 
+If you prefer using a non graphical version, just run with --nogui parameter:
+```
+python app.py --nogui
+```
+
 ### I STRONGLY RECOMENDS TO RUN FROM SOURCE INSTEAD OF THE EXECUTABLE ###
 
 ## Generating tokens ##
