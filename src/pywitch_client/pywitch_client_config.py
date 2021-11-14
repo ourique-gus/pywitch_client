@@ -24,5 +24,8 @@ class PyWitchClientConfig(ConfigParser):
                 'redemptions': True,
                 'streaminfo': True,
             }
+            self['eula'] = {
+                'accept': False
+            }
             with open(self.config_file, 'w') as open_cf:
                 self.write(open_cf)

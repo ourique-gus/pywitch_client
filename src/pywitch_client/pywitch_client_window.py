@@ -27,6 +27,7 @@ from os.path import join
 from pywitch_client_config import PyWitchClientConfig
 from pywitch_client_manager import PyWitchClientManager
 from _version import version
+from _eula import eula
 
 
 def resource_path(relative_path):
@@ -59,6 +60,7 @@ class PyWitchClientWindow(QMainWindow):
         self.channel = self.config['authentication']['channel']
         self.host = self.config['connection']['host']
         self.port = self.config['connection']['port']
+        self.eula = self.config.getboolean('eula','accept')
 
         self.manager = PyWitchClientManager(self.token, self.host, self.port)
         self.manager.start_flask()
@@ -77,6 +79,10 @@ class PyWitchClientWindow(QMainWindow):
         self.check_for_updates()
         if str(version) != str(self.git_version):
             self.setup_update_button()
+            
+        if not self.eula:
+            self.main_widget.setEnabled(False)
+            self.popup_eula()
 
         self.setCentralWidget(self.main_widget)
 
@@ -184,6 +190,31 @@ class PyWitchClientWindow(QMainWindow):
         self.button_about_widget.setEnabled(True)
 
     ##########################################################################
+    
+    def popup_eula(self):
+        self.popup_eula = PyWitchClientPopupEULA(self.close_eula_event)
+        self.popup_eula.button_accept.clicked.connect(self.accept_eula_popup)
+        self.popup_eula.button_reject.clicked.connect(self.reject_eula_popup)
+        self.popup_eula.show()
+        
+    def accept_eula_popup(self):
+        self.config['eula']['accept'] = str(True)
+        self.eula = self.config.getboolean('eula','accept')
+        self.popup_eula.close()
+
+    def reject_eula_popup(self):
+        self.config['eula']['accept'] = str(False)
+        self.eula = self.config.getboolean('eula','accept')
+        self.popup_eula.close()
+
+    def close_eula_event(self):
+        self.config.save_config()
+        if not self.eula:
+            self.app.closeAllWindows()
+        else:
+            self.main_widget.setEnabled(True)
+
+    ##########################################################################
 
     def setup_update_button(self):
         self.button_update_widget = QPushButton()
@@ -262,11 +293,6 @@ class PyWitchClientWindow(QMainWindow):
         self.config['features'][kind] = str(state)
         self.config.save_config()
 
-    ##########################################################################
-
-    def closeEvent(self, event):
-        self.config.save_config()
-        event.accept()
 
     ##########################################################################
 
@@ -344,6 +370,55 @@ class PyWitchClientPopupAbout(QMainWindow):
         self.layout.addWidget(self.source)
         self.layout.addWidget(self.source_client)
         self.layout.addWidget(self.button)
+
+        self.setCentralWidget(self.main_widget)
+
+    def closeEvent(self, event):
+        self.close_event()
+        
+class PyWitchClientPopupEULA(QMainWindow):
+    def __init__(self, close_event):
+        super().__init__()
+
+        self.setWindowTitle('EULA')
+
+        self.main_widget = QWidget()
+        self.layout = QVBoxLayout()
+        self.main_widget.setLayout(self.layout)
+        
+        self.buttons_widget = QWidget()
+        self.buttons_layout = QHBoxLayout()
+        self.buttons_widget.setLayout(self.buttons_layout)
+
+        self.close_event = close_event
+
+        self.body = QLabel(
+            eula
+        )
+        self.body.setWordWrap(True)
+
+        self.source = QLabel(
+            '<a href="https://github.com/ouriquegustavo/pywitch_auth">'
+            'PyWitch Authentication Service Source (github)</a>'
+        )
+        
+        self.source.setOpenExternalLinks(True)
+        
+        self.extra = QLabel(
+            "\nDo you accept these conditions?"
+        )
+
+
+        self.button_accept = QPushButton()
+        self.button_reject = QPushButton()
+        self.button_accept.setText('Accept')
+        self.button_reject.setText('Reject')
+        self.buttons_layout.addWidget(self.button_accept)
+        self.buttons_layout.addWidget(self.button_reject)
+
+        self.layout.addWidget(self.body)
+        self.layout.addWidget(self.source)
+        self.layout.addWidget(self.buttons_widget)
 
         self.setCentralWidget(self.main_widget)
 

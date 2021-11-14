@@ -11,6 +11,7 @@ from os.path import join
 from pywitch_client_config import PyWitchClientConfig
 from pywitch_client_manager import PyWitchClientManager
 from _version import version
+from _eula import eula
 
 class PyWitchClientNoGui:
     def __init__(self):
@@ -26,6 +27,20 @@ class PyWitchClientNoGui:
             'redemptions': self.config.getboolean('features', 'redemptions'),
             'streaminfo': self.config.getboolean('features', 'streaminfo'),
         }
+        
+        self.eula = self.config.getboolean('eula','accept')
+        self.config.save_config()
+        
+        if not self.eula:
+            print (
+                '(PyWitch Client) EULA not accepted. Please read EULA first '
+                'and, if you agree with the conditions, change the '
+                'value of [eula][accept] to True in pywitch_client_config.ini'
+            )
+            print('\nEULA:\n')
+            print(eula)
+            exit()
+            
 
         self.manager = PyWitchClientManager(self.token, self.host, self.port)
         self.manager.start_flask()
@@ -34,7 +49,7 @@ class PyWitchClientNoGui:
     def start(self):
         self.validation = self.validation = self.manager.validate(self.token)
         if not self.validation:
-            print('Waiting for authorization...')
+            print('(PyWitch Client) Waiting for authorization...')
             webbrowser.open(self.auth_url)
         num = 0
         max_tries = 60
