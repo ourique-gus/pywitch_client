@@ -34,7 +34,7 @@ class PyWitchClientNoGui:
     def start(self):
         self.validation = self.validation = self.manager.validate(self.token)
         if not self.validation:
-            self.button_widget.setText('Waiting for authorization...')
+            print('Waiting for authorization...')
             webbrowser.open(self.auth_url)
         num = 0
         max_tries = 60
