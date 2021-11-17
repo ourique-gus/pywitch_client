@@ -1,3 +1,5 @@
+import os
+import sys
 import json
 import time
 import string
@@ -15,6 +17,28 @@ from pywitch import (
     PyWitchRedemptions,
     PyWitchStreamInfo,
 )
+
+def resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+    
+def override_where():
+    return resource_path(os.path.join('cacert', 'cacert.pem'))
+
+if hasattr(sys, "frozen"):
+    import certifi.core
+
+    os.environ["REQUESTS_CA_BUNDLE"] = override_where()
+    certifi.core.where = override_where
+
+    import requests.utils
+    import requests.adapters
+    requests.utils.DEFAULT_CA_BUNDLE_PATH = override_where()
+    requests.adapters.DEFAULT_CA_BUNDLE_PATH = override_where()
 
 valid_char = string.ascii_letters + string.digits
 
