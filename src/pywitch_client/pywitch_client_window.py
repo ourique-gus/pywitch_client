@@ -57,12 +57,15 @@ class PyWitchClientWindow(QMainWindow):
 
         self.config = PyWitchClientConfig()
         self.token = self.config['authentication']['token']
+        self.refresh_token = self.config['authentication']['refresh_token']
         self.channel = self.config['authentication']['channel']
         self.host = self.config['connection']['host']
         self.port = self.config['connection']['port']
         self.eula = self.config.getboolean('eula','accept')
 
-        self.manager = PyWitchClientManager(self.token, self.host, self.port)
+        self.manager = PyWitchClientManager(
+            self.token, self.refresh_token, self.host, self.port
+        )
         self.manager.start_flask()
 
         self.auth_url, self.auth_state = self.manager.get_auth_url()
@@ -134,12 +137,13 @@ class PyWitchClientWindow(QMainWindow):
         while num < max_tries and not self.validation:
             time.sleep(interval)
             num += 1
-            self.token = self.manager.get_token(endpoint)
+            self.token, self.refresh_token = self.manager.get_token(endpoint)
             self.validation = self.manager.validate(self.token)
         if num >= max_tries:
             self.popup_error('Not able to authenticate!')
             return
         self.config['authentication']['token'] = self.token
+        self.config['authentication']['refresh_token'] = self.refresh_token
         self.config.save_config()
         self.button_widget.setText('Starting PyWitch Server...')
         if not self.manager.validation:
@@ -151,7 +155,7 @@ class PyWitchClientWindow(QMainWindow):
             return
 
         self.features = [k for k, v in self.opt_check.items() if v.isChecked()]
-        self.manager.start_validator(self.token)
+        self.manager.start_validator(self.token, self.refresh_token)
         self.manager.start_pywitch(self.channel, self.token, self.features)
         self.button_widget.setText('PyWitch Server Running!')
         self.button_widget.setEnabled(True)

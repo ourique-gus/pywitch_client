@@ -96,6 +96,7 @@ class PyWitchClientManager:
     def __init__(
         self,
         token=None,
+        refresh_token=None,
         host='127.0.0.1',
         port=13486,
         auth_server='https://pywitch-auth.herokuapp.com',
@@ -138,6 +139,18 @@ class PyWitchClientManager:
             f'&state={self.auth_state}'
         )
         return self.auth_url, self.auth_state
+        
+    def refresh_access_token(
+        self, refresh_token=None, refresh_endpoint='refresh'
+    ):
+        if refresh_token:
+            self.refresh_token = refresh_token
+        self.refresh_endpoint = refresh_endpoint
+        url = f'{self.auth_server}/{self.refresh_endpoint}'
+        headers = {'refresh_token': self.refresh_token}
+        response = requests.get(url, headers=headers)
+        response_json = response.json()
+        return response_json.get('access_token')
 
     def get_token(self, state_endpoint='state'):
         self.state_endpoint = state_endpoint
@@ -146,7 +159,8 @@ class PyWitchClientManager:
         response = requests.get(url, params=params)
         data = response.json()
         token = data.get('access_token')
-        return token
+        refresh_token = data.get('refresh_token')
+        return token, refresh_token
 
     def validate(self, token):
         try:
@@ -174,15 +188,15 @@ class PyWitchClientManager:
         )
         self.flask_thread.start()
 
-    def start_validator(self, token):
+    def start_validator(self, refresh_token):
         self.is_running = True
         self.token = token
         self.validator_thread = threading.Thread(
-            target=self.validator_task, args=(self.token,), daemon=True
+            target=self.validator_task, args=(self.token, refresh_token), daemon=True
         )
         self.validator_thread.start()
 
-    def validator_task(self, token, interval=600):
+    def validator_task(self, refresh_token, interval=15):
         time.sleep(interval)
         num = 0
         while self.is_running:
@@ -191,7 +205,9 @@ class PyWitchClientManager:
             num += 1
             time.sleep(1)
             if num >= interval:
+                self.refresh_access_token(refresh_token)
                 self.validate(token)
+                
 
     def start_pywitch(self, channel, token, features):
         self.is_running = True

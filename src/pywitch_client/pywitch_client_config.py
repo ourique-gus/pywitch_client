@@ -16,7 +16,11 @@ class PyWitchClientConfig(ConfigParser):
         if isfile(self.config_file):
             self.read(self.config_file)
         else:
-            self['authentication'] = {'token': '', 'channel': 'gleenus'}
+            self['authentication'] = {
+                'token': '',
+                'refresh_token': '',
+                'channel': 'gleenus',
+            }
             self['connection'] = {'host': '127.0.0.1', 'port': 13486}
             self['features'] = {
                 'tmi': True,
