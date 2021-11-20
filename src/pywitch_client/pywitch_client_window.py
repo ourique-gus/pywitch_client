@@ -57,15 +57,12 @@ class PyWitchClientWindow(QMainWindow):
 
         self.config = PyWitchClientConfig()
         self.token = self.config['authentication']['token']
-        self.refresh_token = self.config['authentication']['refresh_token']
         self.channel = self.config['authentication']['channel']
         self.host = self.config['connection']['host']
         self.port = self.config['connection']['port']
         self.eula = self.config.getboolean('eula','accept')
 
-        self.manager = PyWitchClientManager(
-            self.token, self.refresh_token, self.host, self.port
-        )
+        self.manager = PyWitchClientManager(self.token, self.host, self.port)
         self.manager.start_flask()
 
         self.auth_url, self.auth_state = self.manager.get_auth_url()
@@ -130,6 +127,7 @@ class PyWitchClientWindow(QMainWindow):
         else:
             self.button_widget.setText('Stopping Pywitch Server...')
             self.manager.stop_all()
+            self.check_token_expiration_is_running=False
             self.reset_widgets()
 
     def watch_for_token(self, endpoint='state', interval=3, max_tries=60):
@@ -137,13 +135,12 @@ class PyWitchClientWindow(QMainWindow):
         while num < max_tries and not self.validation:
             time.sleep(interval)
             num += 1
-            self.token, self.refresh_token = self.manager.get_token(endpoint)
+            self.token = self.manager.get_token(endpoint)
             self.validation = self.manager.validate(self.token)
         if num >= max_tries:
             self.popup_error('Not able to authenticate!')
             return
         self.config['authentication']['token'] = self.token
-        self.config['authentication']['refresh_token'] = self.refresh_token
         self.config.save_config()
         self.button_widget.setText('Starting PyWitch Server...')
         if not self.manager.validation:
@@ -155,10 +152,32 @@ class PyWitchClientWindow(QMainWindow):
             return
 
         self.features = [k for k, v in self.opt_check.items() if v.isChecked()]
-        self.manager.start_validator(self.token, self.refresh_token)
+        self.manager.start_validator(self.token)
         self.manager.start_pywitch(self.channel, self.token, self.features)
+        self.token_expiration_time = (
+            time.time()+self.validation.get('expires_in')-300
+        )
+        self.check_token_expiration()
         self.button_widget.setText('PyWitch Server Running!')
         self.button_widget.setEnabled(True)
+        
+    def check_token_expiration(self):
+        self.check_token_expiration_is_running=True
+        self.check_token_expiration_thread = threading.Thread(
+            target=self.check_token_expiration_task, args=(), daemon=True
+        )
+        self.check_token_expiration_thread.start()
+        
+    def check_token_expiration_task(self):
+        while self.check_token_expiration_is_running:
+            time.sleep(5)
+            if time.time() > self.token_expiration_time:
+                self.manager.is_running=True
+                self.button_clicked_thread()
+                self.popup_token_expirated()  
+                self.config['authentication']['token'] = ''
+                self.token = self.config['authentication']['token'] 
+                self.config.save_config()
 
     ##########################################################################
 
@@ -172,6 +191,23 @@ class PyWitchClientWindow(QMainWindow):
 
     def close_event(self):
         self.reset_widgets()
+        
+    ##########################################################################
+
+    def popup_token_expirated(self):
+        self.popup_token_expirated_obj = PyWitchClientPopupTokenExpirated(
+            self.close_token_expirated_event
+        )
+        self.popup_token_expirated_obj.button.clicked.connect(
+            self.close_token_expirated_popup
+        )
+        self.popup_token_expirated_obj.show()
+
+    def close_token_expirated_popup(self):
+        self.popup_token_expirated_obj.close()
+
+    def close_token_expirated_event(self):
+        self.click_button()
 
     ##########################################################################
 
@@ -328,7 +364,38 @@ class PyWitchClientPopupError(QMainWindow):
 
     def closeEvent(self, event):
         self.close_event()
+        
+##############################################################################
+        
+class PyWitchClientPopupTokenExpirated(QMainWindow):
+    def __init__(self, close_event):
+        super().__init__()
 
+        self.close_event = close_event
+        
+        self.setWindowTitle('Token Expirated')
+
+        self.main_widget = QWidget()
+        self.layout = QVBoxLayout()
+        self.main_widget.setLayout(self.layout)
+        
+        self.body = QLabel(
+            'Token Expirated!\n\n'
+            'Please authenticate your token again'
+        )
+        self.body.setWordWrap(True)
+
+        self.button = QPushButton()
+        self.button.setText('Ok')
+        self.layout.addWidget(self.body)
+        self.layout.addWidget(self.button)
+
+        self.setCentralWidget(self.main_widget)
+
+    def closeEvent(self, event):
+        self.close_event()
+
+##############################################################################
 
 class PyWitchClientPopupAbout(QMainWindow):
     def __init__(self, close_event):
@@ -380,6 +447,8 @@ class PyWitchClientPopupAbout(QMainWindow):
     def closeEvent(self, event):
         self.close_event()
         
+##############################################################################
+        
 class PyWitchClientPopupEULA(QMainWindow):
     def __init__(self, close_event):
         super().__init__()
@@ -428,3 +497,5 @@ class PyWitchClientPopupEULA(QMainWindow):
 
     def closeEvent(self, event):
         self.close_event()
+        
+##############################################################################
